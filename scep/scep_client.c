@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2024-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2024-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneSCEP Open.
  *
@@ -30,7 +30,7 @@
  * by using PKCS #7 and PKCS #10 over HTTP. Refer to RFC 8894 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -69,6 +69,9 @@ error_t scepClientInit(ScepClientContext *context)
 
    //Initialize context
    osMemset(context, 0, sizeof(ScepClientContext));
+
+   //Attach TCP/IP stack context
+   context->netContext = netGetDefaultContext();
 
    //Initialize HTTP client context
    error = httpClientInit(&context->httpClientContext);

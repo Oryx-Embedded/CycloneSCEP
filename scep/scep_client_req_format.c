@@ -6,7 +6,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Copyright (C) 2024-2025 Oryx Embedded SARL. All rights reserved.
+ * Copyright (C) 2024-2026 Oryx Embedded SARL. All rights reserved.
  *
  * This file is part of CycloneSCEP Open.
  *
@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.5.4
+ * @version 2.6.0
  **/
 
 //Switch to the appropriate trace level
@@ -147,7 +147,7 @@ error_t scepClientFormatPkiMessage(ScepClientContext *context,
    if(certInfo != NULL)
    {
       //The certificate will be either the self-signed one matching the PKCS #10
-      //request or the CA-issued one used to authorise a renewal
+      //request or the CA-issued one used to authorize a renewal
       error = x509ParseCertificate(context->cert, context->certLen, certInfo);
 
       //Check status code
@@ -156,7 +156,7 @@ error_t scepClientFormatPkiMessage(ScepClientContext *context,
          //During the certificate-enrolment process, the client must use the
          //selected certificate's key when signing the CMS envelope. This
          //certificate will be either the self-signed one matching the PKCS #10
-         //request or the CA-issued one used to authorise a renewal (refer to
+         //request or the CA-issued one used to authorize a renewal (refer to
          //RFC 8894, section 2.3)
          error = pkcs7GenerateSignedData(context->prngAlgo,
             context->prngContext, output, n, certInfo, &attributes, NULL,
