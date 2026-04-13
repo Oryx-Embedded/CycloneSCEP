@@ -30,7 +30,7 @@
  * by using PKCS #7 and PKCS #10 over HTTP. Refer to RFC 8894 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 //Switch to the appropriate trace level

@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.0
+ * @version 2.6.2
  **/
 
 #ifndef _SCEP_COMMON_H
@@ -64,13 +64,13 @@
 #endif
 
 //Version string
-#define CYCLONE_SCEP_VERSION_STRING "2.6.0"
+#define CYCLONE_SCEP_VERSION_STRING "2.6.2"
 //Major version
 #define CYCLONE_SCEP_MAJOR_VERSION 2
 //Minor version
 #define CYCLONE_SCEP_MINOR_VERSION 6
 //Revision number
-#define CYCLONE_SCEP_REV_NUMBER 0
+#define CYCLONE_SCEP_REV_NUMBER 2
 
 //Nonce size
 #define SCEP_NONCE_SIZE 16
