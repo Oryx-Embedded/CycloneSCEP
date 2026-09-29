@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.4
+ * @version 2.6.6
  **/
 
 #ifndef _SCEP_CLIENT_H
@@ -156,8 +156,8 @@
 #endif
 
 //Application specific context
-#ifndef SCEP_CLIENT_PRIVATE_CONTEXT
-   #define SCEP_CLIENT_PRIVATE_CONTEXT
+#ifndef SCEP_CLIENT_CONTEXT_PRIVATE
+   #define SCEP_CLIENT_CONTEXT_PRIVATE
 #endif
 
 //Forward declaration of ScepClientContext structure
@@ -290,7 +290,7 @@ struct _ScepClientContext
    uint_t statusCode;                                        ///<HTTP status code
    char_t contentType[SCEP_CLIENT_MAX_CONTENT_TYPE_LEN + 1]; ///<Content type of the response
    uint_t failInfo;                                          ///<Failure reason
-   SCEP_CLIENT_PRIVATE_CONTEXT                               ///<Application specific context
+   SCEP_CLIENT_CONTEXT_PRIVATE                               ///<Application specific context
 };
 
 
