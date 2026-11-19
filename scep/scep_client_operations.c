@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -221,7 +221,7 @@ error_t scepClientSendPkcsReq(ScepClientContext *context)
       else if(context->requestState == SCEP_REQ_STATE_FORMAT_BODY)
       {
          //The PKCSReq message is used to perform a certificate enrolment
-         //transaction (refer to RFC 8555, section 4.3)
+         //transaction (refer to RFC 8894, section 4.3)
          error = scepClientFormatPkiMessage(context, SCEP_MSG_TYPE_PKCS_REQ,
             context->buffer, &context->bufferLen);
 
@@ -322,7 +322,7 @@ error_t scepClientSendRenewalReq(ScepClientContext *context)
       else if(context->requestState == SCEP_REQ_STATE_FORMAT_BODY)
       {
          //The RenewalReq message is used to perform a certificate renewal
-         //transaction (refer to RFC 8555, section 4.3)
+         //transaction (refer to RFC 8894, section 4.3)
          error = scepClientFormatPkiMessage(context, SCEP_MSG_TYPE_RENEWAL_REQ,
             context->buffer, &context->bufferLen);
 
@@ -423,7 +423,7 @@ error_t scepClientSendCertPoll(ScepClientContext *context)
       else if(context->requestState == SCEP_REQ_STATE_FORMAT_BODY)
       {
          //The CertPoll message is used for certificate polling (refer to
-         //RFC 8555, section 3.3.3)
+         //RFC 8894, section 3.3.3)
          error = scepClientFormatPkiMessage(context, SCEP_MSG_TYPE_CERT_POLL,
             context->buffer, &context->bufferLen);
 

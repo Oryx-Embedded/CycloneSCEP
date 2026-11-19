@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -210,26 +210,34 @@ error_t scepClientFormatRequestHeader(ScepClientContext *context,
    error = httpClientCreateRequest(httpClientContext);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //SCEP uses the HTTP POST and GET methods to exchange information with the
    //CA (refer to RFC 8894, section 4.1)
    error = httpClientSetMethod(httpClientContext, method);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //SCEPPATH is the HTTP URL path for accessing the CA
    error = httpClientSetUri(httpClientContext, context->uri);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //OPERATION depends on the SCEP transaction
    error = httpClientAddQueryParam(httpClientContext, "operation", operation);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
 #if (SCEP_CLIENT_TLS_SUPPORT == ENABLED)
    //"https" URI scheme?
@@ -264,14 +272,18 @@ error_t scepClientFormatRequestHeader(ScepClientContext *context,
 
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Set User-Agent header field
    error = httpClientAddHeaderField(httpClientContext, "User-Agent",
       "Mozilla/5.0");
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //POST request?
    if(osStrcmp(method, "POST") == 0)
@@ -283,13 +295,17 @@ error_t scepClientFormatRequestHeader(ScepClientContext *context,
          "application/x-pki-message");
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Specify the length of the request body
       error = httpClientSetContentLength(httpClientContext, context->bufferLen);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
    else
    {

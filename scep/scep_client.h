@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 #ifndef _SCEP_CLIENT_H
@@ -155,6 +155,20 @@
    #error SCEP_CLIENT_TRANSACTION_ID_SIZE parameter is not valid
 #endif
 
+//Tolerance for clock skew, in seconds
+#ifndef SCEP_CLIENT_MAX_CLOCK_SKEW
+   #define SCEP_CLIENT_MAX_CLOCK_SKEW 3600
+#elif (SCEP_CLIENT_MAX_CLOCK_SKEW < 0)
+   #error SCEP_CLIENT_MAX_CLOCK_SKEW parameter is not valid
+#endif
+
+//Validity period of the self-signed certificate, in seconds
+#ifndef SCEP_CLIENT_SELF_SIGNED_CERT_VALIDITY
+   #define SCEP_CLIENT_SELF_SIGNED_CERT_VALIDITY 86400
+#elif (SCEP_CLIENT_SELF_SIGNED_CERT_VALIDITY < 1)
+   #error SCEP_CLIENT_SELF_SIGNED_CERT_VALIDITY parameter is not valid
+#endif
+
 //Application specific context
 #ifndef SCEP_CLIENT_CONTEXT_PRIVATE
    #define SCEP_CLIENT_CONTEXT_PRIVATE
@@ -258,6 +272,7 @@ struct _ScepClientContext
    NetContext *netContext;                                   ///<TCP/IP stack context
    NetInterface *interface;                                  ///<Underlying network interface
    systime_t timeout;                                        ///<Timeout value
+   bool_t certValidityCheck;                                 ///<Check the validity period of certificates
    const PrngAlgo *prngAlgo;                                 ///<Pseudo-random number generator to be used
    void *prngContext;                                        ///<Pseudo-random number generator context
    HttpClientContext httpClientContext;                      ///<HTTP client context
@@ -317,6 +332,9 @@ error_t scepClientSetPrng(ScepClientContext *context, const PrngAlgo *prngAlgo,
    void *prngContext);
 
 error_t scepClientSetTimeout(ScepClientContext *context, systime_t timeout);
+
+error_t scepClientEnableCertValidityCheck(ScepClientContext *context,
+   bool_t enable);
 
 error_t scepClientSetHost(ScepClientContext *context, const char_t *host);
 error_t scepClientSetUri(ScepClientContext *context, const char_t *uri);

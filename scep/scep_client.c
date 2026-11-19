@@ -30,7 +30,7 @@
  * by using PKCS #7 and PKCS #10 over HTTP. Refer to RFC 8894 for more details
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -62,7 +62,9 @@ error_t scepClientInit(ScepClientContext *context)
 
    //Make sure the SCEP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Debug message
    TRACE_INFO("Initializing SCEP client...\r\n");
@@ -77,7 +79,9 @@ error_t scepClientInit(ScepClientContext *context)
    error = httpClientInit(&context->httpClientContext);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Initialize SCEP client state
    context->state = SCEP_CLIENT_STATE_DISCONNECTED;
@@ -86,6 +90,9 @@ error_t scepClientInit(ScepClientContext *context)
    context->timeout = SCEP_CLIENT_DEFAULT_TIMEOUT;
    //Default URI
    osStrcpy(context->uri, "/");
+
+   //The validity period of certificates is checked by default
+   context->certValidityCheck = TRUE;
 
    //Successful initialization
    return NO_ERROR;
@@ -106,7 +113,9 @@ error_t scepClientRegisterTlsInitCallback(ScepClientContext *context,
 {
    //Make sure the SCEP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save callback function
    context->tlsInitCallback = callback;
@@ -130,7 +139,9 @@ error_t scepClientRegisterCaCertVerifyCallback(ScepClientContext *context,
 {
    //Make sure the SCEP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save callback function
    context->caCertVerifyCallback = callback;
@@ -152,7 +163,9 @@ error_t scepClientRegisterCsrGenCallback(ScepClientContext *context,
 {
    //Make sure the SCEP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save callback function
    context->csrGenCallback = callback;
@@ -174,7 +187,9 @@ error_t scepClientRegisterSelfSignedCertGenCallback(ScepClientContext *context,
 {
    //Make sure the SCEP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save callback function
    context->selfSignedCertGenCallback = callback;
@@ -197,7 +212,9 @@ error_t scepClientSetPrng(ScepClientContext *context, const PrngAlgo *prngAlgo,
 {
    //Check parameters
    if(context == NULL || prngAlgo == NULL || prngContext == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //PRNG algorithm that will be used to generate nonces
    context->prngAlgo = prngAlgo;
@@ -220,10 +237,37 @@ error_t scepClientSetTimeout(ScepClientContext *context, systime_t timeout)
 {
    //Make sure the SCEP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Save timeout value
    context->timeout = timeout;
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Enable or disable the validity period check of certificates
+ * @param[in] context Pointer to the SCEP client context
+ * @param[in] enable Specifies whether the validity period of certificates
+ *   is checked
+ * @return Error code
+ **/
+
+error_t scepClientEnableCertValidityCheck(ScepClientContext *context,
+   bool_t enable)
+{
+   //Make sure the SCEP client context is valid
+   if(context == NULL)
+   {
+      return ERROR_INVALID_PARAMETER;
+   }
+
+   //Enable or disable the validity period check
+   context->certValidityCheck = enable;
 
    //Successful processing
    return NO_ERROR;
@@ -241,11 +285,15 @@ error_t scepClientSetHost(ScepClientContext *context, const char_t *host)
 {
    //Check parameters
    if(context == NULL || host == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the length of the host name is acceptable
    if(osStrlen(host) > SCEP_CLIENT_MAX_HOST_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Save host name
    osStrcpy(context->serverName, host);
@@ -266,11 +314,15 @@ error_t scepClientSetUri(ScepClientContext *context, const char_t *uri)
 {
    //Check parameters
    if(context == NULL || uri == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Make sure the length of the URI is acceptable
    if(osStrlen(uri) > SCEP_CLIENT_MAX_URI_LEN)
+   {
       return ERROR_INVALID_LENGTH;
+   }
 
    //Save the URI of the directory object
    osStrcpy(context->uri, uri);
@@ -291,7 +343,9 @@ error_t scepClientBindToInterface(ScepClientContext *context,
 {
    //Make sure the SCEP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Explicitly associate the SCEP client with the specified interface
    context->interface = interface;
@@ -316,7 +370,9 @@ error_t scepClientConnect(ScepClientContext *context,
 
    //Make sure the SCEP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -509,6 +565,9 @@ void scepClientUnloadKeyPair(ScepClientContext *context)
       {
          //Just for sanity
       }
+
+      //No key pair is loaded anymore
+      context->keyType = X509_KEY_TYPE_UNKNOWN;
    }
 }
 
@@ -577,8 +636,10 @@ error_t scepClientLoadCert(ScepClientContext *context,
  * @brief Store client's certificate
  * @param[in] context Pointer to the SCEP client context
  * @param[out] output Pointer to the buffer where to store the PEM-encoded
- *   certificate (optional parameter)
- * @param[out] written Length of the resulting PEM string
+ *   certificate. If this parameter is NULL, the function only calculates the
+ *   length of the resulting string
+ * @param[out] written Length of the resulting string, excluding the terminating
+ *   NULL character
  * @return Error code
  **/
 
@@ -589,7 +650,9 @@ error_t scepClientStoreCert(ScepClientContext *context,
 
    //Check parameters
    if(context == NULL || written == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Valid certificate?
    if(context->certLen > 0)
@@ -672,9 +735,11 @@ error_t scepClientLoadCaCert(ScepClientContext *context,
 /**
  * @brief Store CA certificate
  * @param[in] context Pointer to the SCEP client context
- * @param[out] output Pointer to the buffer where to store the PEM-encoded
- *   CA certificate (optional parameter)
- * @param[out] written Length of the resulting PEM string
+ * @param[out] output Pointer to the buffer where to store the PEM-encoded CA
+ *   certificate. If this parameter is NULL, the function only calculates the
+ *   length of the resulting string
+ * @param[out] written Length of the resulting string, excluding the terminating
+ *   NULL character
  * @return Error code
  **/
 
@@ -689,7 +754,9 @@ error_t scepClientStoreCaCert(ScepClientContext *context,
 
    //Check parameters
    if(context == NULL || written == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -754,7 +821,9 @@ error_t scepClientGetCaCaps(ScepClientContext *context, uint_t *caCaps)
 
    //Check parameters
    if(context == NULL || caCaps == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize variables
    error = NO_ERROR;
@@ -817,7 +886,9 @@ error_t scepClientGetCaCert(ScepClientContext *context)
 
    //Make sure the SCEP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize variables
    error = NO_ERROR;
@@ -877,7 +948,9 @@ error_t scepClientEnroll(ScepClientContext *context)
 
    //Make sure the SCEP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize variables
    error = NO_ERROR;
@@ -1025,11 +1098,15 @@ error_t scepClientRenew(ScepClientContext *context)
 
    //Make sure the SCEP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Check whether the previously issued certificate is valid
    if(context->certLen == 0)
+   {
       return ERROR_BAD_CERTIFICATE;
+   }
 
    //Initialize variables
    error = NO_ERROR;
@@ -1163,7 +1240,9 @@ error_t scepClientPoll(ScepClientContext *context)
 
    //Make sure the SCEP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize variables
    error = NO_ERROR;
@@ -1252,7 +1331,9 @@ error_t scepClientDisconnect(ScepClientContext *context)
 
    //Make sure the SCEP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Initialize status code
    error = NO_ERROR;
@@ -1316,7 +1397,9 @@ error_t scepClientClose(ScepClientContext *context)
 {
    //Make sure the SCEP client context is valid
    if(context == NULL)
+   {
       return ERROR_INVALID_PARAMETER;
+   }
 
    //Close HTTP connection
    httpClientClose(&context->httpClientContext);

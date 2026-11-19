@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -72,7 +72,7 @@ error_t scepClientFormatPkiMessage(ScepClientContext *context,
    //The messageType attribute specifies the type of operation performed by the
    //transaction. This attribute must be included in all PKI messages (refer to
    //RFC 8894, section 3.2.1.2)
-   osSprintf(buffer, "%u", (uint_t) messageType);
+   osSprintf(buffer, "%" PRIu8, (uint8_t) messageType);
 
    //When a sender sends a PKI message to a recipient, a fresh senderNonce
    //must be included in the message (refer to RFC 8894, section 3.2.1.5)
@@ -80,13 +80,17 @@ error_t scepClientFormatPkiMessage(ScepClientContext *context,
       context->senderNonce, SCEP_NONCE_SIZE);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //The signed content must be a pkcsPKIEnvelope
    error = scepClientFormatPkcsPkiEnvelope(context, messageType, output, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Clear authenticatedAttributes structure
    osMemset(&attributes, 0, sizeof(Pkcs7AuthenticatedAttributes));
@@ -138,7 +142,9 @@ error_t scepClientFormatPkiMessage(ScepClientContext *context,
    error = scepClientSelectSignatureAlgo(context, &signatureAlgo);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Allocate a memory buffer to store X.509 certificate info
    certInfo = cryptoAllocMem(sizeof(X509CertInfo));
@@ -174,7 +180,9 @@ error_t scepClientFormatPkiMessage(ScepClientContext *context,
 
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //The general syntax for content exchanged between entities associates a
    //content type with content (refer to RFC 2315, section 7)
@@ -188,7 +196,9 @@ error_t scepClientFormatPkiMessage(ScepClientContext *context,
    error = pkcs7FormatContentInfo(&contentInfo, output, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Debug message
    TRACE_DEBUG("pkiMessage (%" PRIuSIZE " bytes):\r\n", n);
@@ -222,13 +232,17 @@ error_t scepClientFormatPkcsPkiEnvelope(ScepClientContext *context,
 
    //Check the length of the CSR
    if(context->csrLen == 0)
+   {
       return ERROR_INVALID_CSR;
+   }
 
    //Select content encryption algorithm
    error = scepClientSelectContentEncrAlgo(context, &contentEncrAlgo);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Check SCEP message type
    if(messageType == SCEP_MSG_TYPE_PKCS_REQ ||
@@ -253,7 +267,9 @@ error_t scepClientFormatPkcsPkiEnvelope(ScepClientContext *context,
 
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Allocate a memory buffer to store X.509 certificate info
    certInfo = cryptoAllocMem(sizeof(X509CertInfo));
@@ -284,7 +300,9 @@ error_t scepClientFormatPkcsPkiEnvelope(ScepClientContext *context,
 
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //The general syntax for content exchanged between entities associates a
    //content type with content (refer to RFC 2315, section 7)
@@ -297,7 +315,9 @@ error_t scepClientFormatPkcsPkiEnvelope(ScepClientContext *context,
    error = pkcs7FormatContentInfo(&contentInfo, output, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Debug message
    TRACE_DEBUG("pkcsPKIEnvelope (%" PRIuSIZE " bytes):\r\n", n);
@@ -370,7 +390,9 @@ error_t scepClientFormatIssuerAndSubject(ScepClientContext *context,
 
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Allocate a memory buffer to store CSR info
    csrInfo = cryptoAllocMem(sizeof(X509CsrInfo));
@@ -407,7 +429,9 @@ error_t scepClientFormatIssuerAndSubject(ScepClientContext *context,
 
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //The IssuerAndSubject structure is encapsulated within a sequence
    tag.constructed = TRUE;
@@ -419,7 +443,9 @@ error_t scepClientFormatIssuerAndSubject(ScepClientContext *context,
    error = asn1InsertHeader(&tag, output, &n);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Total number of bytes that have been written
    *written = tag.totalLength;

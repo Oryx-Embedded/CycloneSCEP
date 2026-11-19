@@ -25,7 +25,7 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  *
  * @author Oryx Embedded SARL (www.oryx-embedded.com)
- * @version 2.6.6
+ * @version 2.6.8
  **/
 
 //Switch to the appropriate trace level
@@ -71,7 +71,9 @@ error_t scepClientParseGetCaCapsResponse(ScepClientContext *context)
    {
       //Check whether the body of the response is truncated
       if(context->bufferLen >= SCEP_CLIENT_BUFFER_SIZE)
+      {
          return ERROR_RESPONSE_TOO_LARGE;
+      }
 
       //Properly terminate the body with a NULL character
       context->buffer[context->bufferLen] = '\0';
@@ -174,7 +176,7 @@ error_t scepClientParseGetCaCertResponse(ScepClientContext *context)
       //directly communicates with the client during the enrolment and the case
       //where an intermediate CA exists and the client communicates with this
       //CA during the enrolment (refer to RFC 8894, section 4.2.1)
-      if(osStrcmp(context->contentType, "application/x-x509-ca-cert") == 0)
+      if(osStrcasecmp(context->contentType, "application/x-x509-ca-cert") == 0)
       {
          //Check the length of the CA certificate
          if(context->bufferLen > 0 &&
@@ -191,7 +193,7 @@ error_t scepClientParseGetCaCertResponse(ScepClientContext *context)
             error = ERROR_RESPONSE_TOO_LARGE;
          }
       }
-      else if(osStrcmp(context->contentType, "application/x-x509-ca-ra-cert") == 0)
+      else if(osStrcasecmp(context->contentType, "application/x-x509-ca-ra-cert") == 0)
       {
          size_t n;
          Pkcs7ContentInfo contentInfo;
@@ -273,7 +275,7 @@ error_t scepClientParseCertResponse(ScepClientContext *context)
    {
       //The response will have a Content-Type of "application/x-pki-message"
       //(refer to RFC 8894, section 4.3.1)
-      if(osStrcmp(context->contentType, "application/x-pki-message") == 0)
+      if(osStrcasecmp(context->contentType, "application/x-pki-message") == 0)
       {
          //The basic building block of all secured SCEP messages is the SCEP
          //pkiMessage (refer to RFC 8894, section 3.2)
@@ -290,7 +292,7 @@ error_t scepClientParseCertResponse(ScepClientContext *context)
    {
       //The text content type is used for message content that is primarily in
       //human-readable text character format
-      if(osStrncmp(context->contentType, "text/", 5) == 0)
+      if(osStrncasecmp(context->contentType, "text/", 5) == 0)
       {
          //Properly terminate the string with a NULL character
          context->buffer[context->bufferLen] = '\0';
@@ -338,7 +340,9 @@ error_t scepClientParsePkiMessage(ScepClientContext *context,
    error = pkcs7ParseContentInfo(data, length, &n, &contentInfo);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //The basic building block of all secured SCEP messages is the SCEP
    //pkiMessage. It consists of a CMS SignedData content type (refer to
@@ -354,7 +358,9 @@ error_t scepClientParsePkiMessage(ScepClientContext *context,
       contentInfo.content.length, &signedData);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Allocate a memory buffer to store X.509 certificate info
    certInfo = cryptoAllocMem(sizeof(X509CertInfo));
@@ -393,7 +399,9 @@ error_t scepClientParsePkiMessage(ScepClientContext *context,
 
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //All messages must contain a transactionID attribute
    error = pkcs7FindAttribute(signerInfo.authenticatedAttributes.raw.value,
@@ -401,11 +409,15 @@ error_t scepClientParsePkiMessage(ScepClientContext *context,
       sizeof(SCEP_TRANSACTION_ID_OID), &attribute);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //The attribute is encoded as PrintableString
    if(attribute.type != ASN1_TYPE_PRINTABLE_STRING)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //The transactionID must be used for all PKI messages exchanged for a given
    //operation
@@ -424,18 +436,24 @@ error_t scepClientParsePkiMessage(ScepClientContext *context,
       sizeof(SCEP_MESSAGE_TYPE_OID), &attribute);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //The attribute is encoded as a PrintableString
    if(attribute.type != ASN1_TYPE_PRINTABLE_STRING)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //The attribute value is a numeric text string
    error = x509ParseInt(attribute.data.value, attribute.data.length,
       &messageType);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Debug message
    scepDumpMessageType(messageType);
@@ -447,18 +465,24 @@ error_t scepClientParsePkiMessage(ScepClientContext *context,
       sizeof(SCEP_RECIPIENT_NONCE_OID), &attribute);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //The nonce must be a 16-byte binary data string
    if(attribute.data.length != SCEP_NONCE_SIZE)
+   {
       return ERROR_BAD_NONCE;
+   }
 
    //The original sender must verify that the recipientNonce of the reply
    //matches the senderNonce it sent in the request. If the nonce does not
    //match, then the message must be rejected (refer to RFC 8894,
    //section 3.2.1.5)
    if(osMemcmp(attribute.data.value, context->senderNonce, SCEP_NONCE_SIZE) != 0)
+   {
       return ERROR_BAD_NONCE;
+   }
 
    //All response messages must include transaction status information, which
    //is defined as a pkiStatus attribute (refer to RFC 8894, section 3.2.1.3)
@@ -467,18 +491,24 @@ error_t scepClientParsePkiMessage(ScepClientContext *context,
       sizeof(SCEP_PKI_STATUS_OID), &attribute);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //The attribute is encoded as a PrintableString
    if(attribute.type != ASN1_TYPE_PRINTABLE_STRING)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //The attribute value is a numeric text string
    error = x509ParseInt(attribute.data.value, attribute.data.length,
       &pkiStatus);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Debug message
    scepDumpPkiStatus(pkiStatus);
@@ -492,7 +522,9 @@ error_t scepClientParsePkiMessage(ScepClientContext *context,
          signedData.contentInfo.content.length, &tag);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //When the pkiStatus attribute is set to SUCCESS, the messageData for
       //this message consists of a degenerate certificates-only CMS SignedData
@@ -501,7 +533,9 @@ error_t scepClientParsePkiMessage(ScepClientContext *context,
          tag.length);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
    }
    else if(pkiStatus == SCEP_PKI_STATUS_FAILURE)
    {
@@ -513,18 +547,24 @@ error_t scepClientParsePkiMessage(ScepClientContext *context,
          sizeof(SCEP_FAIL_INFO_OID), &attribute);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //The attribute is encoded as a PrintableString
       if(attribute.type != ASN1_TYPE_PRINTABLE_STRING)
+      {
          return ERROR_INVALID_SYNTAX;
+      }
 
       //The attribute value is a numeric text string
       error = x509ParseInt(attribute.data.value, attribute.data.length,
          &context->failInfo);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Debug message
       scepDumpFailInfo(context->failInfo);
@@ -578,7 +618,9 @@ error_t scepClientParsePkcsPkiEnvelope(ScepClientContext *context,
    error = pkcs7ParseContentInfo(data, length, &n, &contentInfo);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //The information portion of a SCEP message is carried inside an
    //EnvelopedData content type (refer to RFC 8894, section 3.2.2)
@@ -593,7 +635,9 @@ error_t scepClientParsePkcsPkiEnvelope(ScepClientContext *context,
       contentInfo.content.length, &envelopedData);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //Allocate a memory buffer to store X.509 certificate info
    certInfo = cryptoAllocMem(sizeof(X509CertInfo));
@@ -609,9 +653,20 @@ error_t scepClientParsePkcsPkiEnvelope(ScepClientContext *context,
       //Check status code
       if(!error)
       {
-         //Decrypt enveloped-data content
-         error = pkcs7DecryptEnvelopedData(&envelopedData, certInfo,
-            &context->rsaPrivateKey, context->buffer, &n);
+#if (SCEP_CLIENT_RSA_SUPPORT == ENABLED)
+         //RSA key pair?
+         if(context->keyType == X509_KEY_TYPE_RSA)
+         {
+            //Decrypt enveloped-data content
+            error = pkcs7DecryptEnvelopedData(&envelopedData, certInfo,
+               &context->rsaPrivateKey, context->buffer, &n);
+         }
+         else
+#endif
+         {
+            //Report an error
+            error = ERROR_INVALID_KEY;
+         }
       }
 
       //Release previously allocated memory
@@ -625,7 +680,9 @@ error_t scepClientParsePkcsPkiEnvelope(ScepClientContext *context,
 
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //When a particular SCEP message carries data, this data is carried in the
    //messageData (refer to RFC 8894, section 3)
@@ -653,7 +710,9 @@ error_t scepClientParseMessageData(ScepClientContext *context,
 
    //The CertRep is the response to certificate or CRL request
    if(messageType != SCEP_MSG_TYPE_CERT_REP)
+   {
       return ERROR_INVALID_TYPE;
+   }
 
    //Debug message
    TRACE_DEBUG("messageData (%" PRIuSIZE " bytes):\r\n", length);
@@ -664,7 +723,9 @@ error_t scepClientParseMessageData(ScepClientContext *context,
    error = pkcs7ParseContentInfo(data, length, &n, &contentInfo);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //The messageData for this type consists of a degenerate certificates-only CMS
    //SignedData message (refer to RFC 8894, section 3.3.2)
@@ -679,7 +740,9 @@ error_t scepClientParseMessageData(ScepClientContext *context,
       contentInfo.content.length, &signedData);
    //Any error to report?
    if(error)
+   {
       return error;
+   }
 
    //In the degenerate case where there are no signers on the content (refer to
    //RFC 2315, section 9.1)
@@ -694,7 +757,9 @@ error_t scepClientParseMessageData(ScepClientContext *context,
    //but the issued certificate must be the leaf certificate (refer to RFC 8894,
    //section 3.3.2.1)
    if(signedData.certificates.raw.length == 0)
+   {
       return ERROR_INVALID_SYNTAX;
+   }
 
    //Point to the first certificate
    data = signedData.certificates.raw.value;
@@ -707,11 +772,15 @@ error_t scepClientParseMessageData(ScepClientContext *context,
       error = asn1ReadSequence(data, length, &tag);
       //Any error to report?
       if(error)
+      {
          return error;
+      }
 
       //Leaf certificate?
       if(tag.totalLength == length)
+      {
          break;
+      }
 
       //Next certificate
       data += tag.totalLength;
@@ -720,7 +789,9 @@ error_t scepClientParseMessageData(ScepClientContext *context,
 
    //Check the length of the issued certificate
    if(length > SCEP_CLIENT_MAX_CERT_LEN)
+   {
       return ERROR_RESPONSE_TOO_LARGE;
+   }
 
    //Save the issued certificate
    osMemcpy(context->cert, data, length);
