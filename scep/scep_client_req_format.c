@@ -72,7 +72,7 @@ error_t scepClientFormatPkiMessage(ScepClientContext *context,
    //The messageType attribute specifies the type of operation performed by the
    //transaction. This attribute must be included in all PKI messages (refer to
    //RFC 8894, section 3.2.1.2)
-   osSprintf(buffer, "%u", (uint_t) messageType);
+   osSprintf(buffer, "%" PRIu8, (uint8_t) messageType);
 
    //When a sender sends a PKI message to a recipient, a fresh senderNonce
    //must be included in the message (refer to RFC 8894, section 3.2.1.5)

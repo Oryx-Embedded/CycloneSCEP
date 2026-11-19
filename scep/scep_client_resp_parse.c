@@ -174,7 +174,7 @@ error_t scepClientParseGetCaCertResponse(ScepClientContext *context)
       //directly communicates with the client during the enrolment and the case
       //where an intermediate CA exists and the client communicates with this
       //CA during the enrolment (refer to RFC 8894, section 4.2.1)
-      if(osStrcmp(context->contentType, "application/x-x509-ca-cert") == 0)
+      if(osStrcasecmp(context->contentType, "application/x-x509-ca-cert") == 0)
       {
          //Check the length of the CA certificate
          if(context->bufferLen > 0 &&
@@ -191,7 +191,7 @@ error_t scepClientParseGetCaCertResponse(ScepClientContext *context)
             error = ERROR_RESPONSE_TOO_LARGE;
          }
       }
-      else if(osStrcmp(context->contentType, "application/x-x509-ca-ra-cert") == 0)
+      else if(osStrcasecmp(context->contentType, "application/x-x509-ca-ra-cert") == 0)
       {
          size_t n;
          Pkcs7ContentInfo contentInfo;
@@ -273,7 +273,7 @@ error_t scepClientParseCertResponse(ScepClientContext *context)
    {
       //The response will have a Content-Type of "application/x-pki-message"
       //(refer to RFC 8894, section 4.3.1)
-      if(osStrcmp(context->contentType, "application/x-pki-message") == 0)
+      if(osStrcasecmp(context->contentType, "application/x-pki-message") == 0)
       {
          //The basic building block of all secured SCEP messages is the SCEP
          //pkiMessage (refer to RFC 8894, section 3.2)
@@ -290,7 +290,7 @@ error_t scepClientParseCertResponse(ScepClientContext *context)
    {
       //The text content type is used for message content that is primarily in
       //human-readable text character format
-      if(osStrncmp(context->contentType, "text/", 5) == 0)
+      if(osStrncasecmp(context->contentType, "text/", 5) == 0)
       {
          //Properly terminate the string with a NULL character
          context->buffer[context->bufferLen] = '\0';
@@ -609,9 +609,20 @@ error_t scepClientParsePkcsPkiEnvelope(ScepClientContext *context,
       //Check status code
       if(!error)
       {
-         //Decrypt enveloped-data content
-         error = pkcs7DecryptEnvelopedData(&envelopedData, certInfo,
-            &context->rsaPrivateKey, context->buffer, &n);
+#if (SCEP_CLIENT_RSA_SUPPORT == ENABLED)
+         //RSA key pair?
+         if(context->keyType == X509_KEY_TYPE_RSA)
+         {
+            //Decrypt enveloped-data content
+            error = pkcs7DecryptEnvelopedData(&envelopedData, certInfo,
+               &context->rsaPrivateKey, context->buffer, &n);
+         }
+         else
+#endif
+         {
+            //Report an error
+            error = ERROR_INVALID_KEY;
+         }
       }
 
       //Release previously allocated memory

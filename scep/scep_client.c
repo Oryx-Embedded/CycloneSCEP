@@ -87,6 +87,9 @@ error_t scepClientInit(ScepClientContext *context)
    //Default URI
    osStrcpy(context->uri, "/");
 
+   //The validity period of certificates is checked by default
+   context->certValidityCheck = TRUE;
+
    //Successful initialization
    return NO_ERROR;
 }
@@ -224,6 +227,29 @@ error_t scepClientSetTimeout(ScepClientContext *context, systime_t timeout)
 
    //Save timeout value
    context->timeout = timeout;
+
+   //Successful processing
+   return NO_ERROR;
+}
+
+
+/**
+ * @brief Enable or disable the validity period check of certificates
+ * @param[in] context Pointer to the SCEP client context
+ * @param[in] enable Specifies whether the validity period of certificates
+ *   is checked
+ * @return Error code
+ **/
+
+error_t scepClientEnableCertValidityCheck(ScepClientContext *context,
+   bool_t enable)
+{
+   //Make sure the SCEP client context is valid
+   if(context == NULL)
+      return ERROR_INVALID_PARAMETER;
+
+   //Enable or disable the validity period check
+   context->certValidityCheck = enable;
 
    //Successful processing
    return NO_ERROR;
@@ -509,6 +535,9 @@ void scepClientUnloadKeyPair(ScepClientContext *context)
       {
          //Just for sanity
       }
+
+      //No key pair is loaded anymore
+      context->keyType = X509_KEY_TYPE_UNKNOWN;
    }
 }
 
@@ -577,8 +606,10 @@ error_t scepClientLoadCert(ScepClientContext *context,
  * @brief Store client's certificate
  * @param[in] context Pointer to the SCEP client context
  * @param[out] output Pointer to the buffer where to store the PEM-encoded
- *   certificate (optional parameter)
- * @param[out] written Length of the resulting PEM string
+ *   certificate. If this parameter is NULL, the function only calculates the
+ *   length of the resulting string
+ * @param[out] written Length of the resulting string, excluding the terminating
+ *   NULL character
  * @return Error code
  **/
 
@@ -672,9 +703,11 @@ error_t scepClientLoadCaCert(ScepClientContext *context,
 /**
  * @brief Store CA certificate
  * @param[in] context Pointer to the SCEP client context
- * @param[out] output Pointer to the buffer where to store the PEM-encoded
- *   CA certificate (optional parameter)
- * @param[out] written Length of the resulting PEM string
+ * @param[out] output Pointer to the buffer where to store the PEM-encoded CA
+ *   certificate. If this parameter is NULL, the function only calculates the
+ *   length of the resulting string
+ * @param[out] written Length of the resulting string, excluding the terminating
+ *   NULL character
  * @return Error code
  **/
 

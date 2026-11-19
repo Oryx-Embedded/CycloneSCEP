@@ -222,7 +222,6 @@ error_t scepClientParseCaCert(ScepClientContext *context,
 error_t scepClientVerifyCaCert(ScepClientContext *context)
 {
    error_t error;
-   time_t currentTime;
    X509CertInfo *certInfo;
 
    //Any registered callback?
@@ -240,29 +239,51 @@ error_t scepClientVerifyCaCert(ScepClientContext *context)
          //Check status code
          if(!error)
          {
-            //Retrieve current time
-            currentTime = getCurrentUnixTime();
-
-            //Any real-time clock implemented?
-            if(currentTime != 0)
+            //Check whether the validity period of the certificate should be
+            //verified
+            if(context->certValidityCheck)
             {
+               time_t currentTime;
                DateTime currentDate;
                const X509Validity *validity;
 
-               //Convert Unix timestamp to date
-               convertUnixTimeToDate(currentTime, &currentDate);
-
-               //The certificate validity period is the time interval during which
-               //the CA warrants that it will maintain information about the status
-               //of the certificate
+               //The certificate validity period is the time interval during
+               //which the CA warrants that it will maintain information about
+               //the status of the certificate
                validity = &certInfo->tbsCert.validity;
 
-               //Check the validity period
-               if(compareDateTime(&currentDate, &validity->notBefore) < 0 ||
-                  compareDateTime(&currentDate, &validity->notAfter) > 0)
+               //Retrieve current time
+               currentTime = getCurrentUnixTime();
+
+               //Any real-time clock implemented?
+               if(currentTime != 0)
                {
-                  //The certificate has expired or is not yet valid
-                  error = ERROR_CERTIFICATE_EXPIRED;
+                  //Convert Unix timestamp to date
+                  convertUnixTimeToDate(currentTime, &currentDate);
+
+                  //Check the validity period
+                  if(compareDateTime(&currentDate, &validity->notBefore) < 0 ||
+                     compareDateTime(&currentDate, &validity->notAfter) >= 0)
+                  {
+                     //The certificate has expired or is not yet valid
+                     error = ERROR_CERTIFICATE_EXPIRED;
+                  }
+               }
+               else
+               {
+                  //Only certificates that have no well-defined expiration
+                  //date are accepted (refer to RFC 5280, section 4.1.2.5)
+                  if(validity->notAfter.year != 9999 ||
+                     validity->notAfter.month != 12 ||
+                     validity->notAfter.day != 31 ||
+                     validity->notAfter.hours != 23 ||
+                     validity->notAfter.minutes != 59 ||
+                     validity->notAfter.seconds != 59)
+                  {
+                     //The validity period of the certificate cannot be verified
+                     //without a real-time clock
+                     error = ERROR_CERTIFICATE_EXPIRED;
+                  }
                }
             }
          }
@@ -443,32 +464,50 @@ error_t scepClientGenerateSelfSignedCert(ScepClientContext *context)
             //Any real-time clock implemented?
             if(currentTime != 0)
             {
-               //Validity period
-               convertUnixTimeToDate(currentTime, &validity.notBefore);
-               convertUnixTimeToDate(currentTime + 86400, &validity.notAfter);
+               //The notBefore field is backdated to tolerate a clock skew
+               //between the SCEP client and the CA
+               convertUnixTimeToDate(currentTime - SCEP_CLIENT_MAX_CLOCK_SKEW,
+                  &validity.notBefore);
+
+               //Validity period of the self-signed certificate
+               convertUnixTimeToDate(currentTime +
+                  SCEP_CLIENT_SELF_SIGNED_CERT_VALIDITY, &validity.notAfter);
             }
             else
             {
-               //Validity period
+               //In the absence of a real-time clock, the certificate has no
+               //well-defined expiration date
                validity.notBefore.year = 2020;
                validity.notBefore.month = 1;
                validity.notBefore.day = 1;
-               validity.notBefore.hours = 12;
+               validity.notBefore.hours = 0;
                validity.notBefore.minutes = 0;
                validity.notBefore.seconds = 0;
-               validity.notAfter.year = 2021;
-               validity.notAfter.month = 1;
-               validity.notAfter.day = 1;
-               validity.notAfter.hours = 12;
-               validity.notAfter.minutes = 0;
-               validity.notAfter.seconds = 0;
+               validity.notAfter.year = 9999;
+               validity.notAfter.month = 12;
+               validity.notAfter.day = 31;
+               validity.notAfter.hours = 23;
+               validity.notAfter.minutes = 59;
+               validity.notAfter.seconds = 59;
             }
 
-            //Create a self-signed X.509 certificate
-            error = x509CreateCertificate(context->prngAlgo, context->prngContext,
-               &csrInfo->certReqInfo, &context->rsaPublicKey, NULL, NULL, &validity,
-               &csrInfo->signatureAlgo, &context->rsaPrivateKey, context->cert,
-               &context->certLen);
+#if (SCEP_CLIENT_RSA_SUPPORT == ENABLED)
+            //RSA key pair?
+            if(context->keyType == X509_KEY_TYPE_RSA)
+            {
+               //Create a self-signed X.509 certificate
+               error = x509CreateCertificate(context->prngAlgo,
+                  context->prngContext, &csrInfo->certReqInfo,
+                  &context->rsaPublicKey, NULL, NULL, &validity,
+                  &csrInfo->signatureAlgo, &context->rsaPrivateKey,
+                  context->cert, &context->certLen);
+            }
+            else
+#endif
+            {
+               //Report an error
+               error = ERROR_INVALID_KEY;
+            }
          }
 
          //Release previously allocated memory
